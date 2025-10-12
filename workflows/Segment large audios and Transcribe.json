@@ -1,0 +1,636 @@
+{
+  "name": "Segment large audios and Transcribe",
+  "nodes": [
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "35a45b26-2d2c-4ee4-bb60-8f44e042ffed",
+              "leftValue": "={{ $json.fileSizeMB }}",
+              "rightValue": 20,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [368, -1824],
+      "id": "4391b4fe-65fd-4198-a70d-f7caaf68c2b7",
+      "name": "If size > 20mb"
+    },
+    {
+      "parameters": {
+        "executeOnce": false,
+        "command": "=ffmpeg -i \"{{ $('If size > 20mb').item.json.path }}\" 2>&1 | grep -oE \"[0-9]{1,}:?[0-9]{2}:[0-9]{2}\""
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [816, -1840],
+      "id": "67e0f4d5-1f3f-426f-a97c-37feee715308",
+      "name": "Get Audio duration",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "command": "=ffmpeg -i \"{{ $('Get Folder name').item.json.path }}\" \\\n       -segment_format {{ $('Get Folder name').item.json.fileExtension }} \\\n       -f segment \\\n       -segment_time {{ $json.secondsPerSegment }} \\\n       -c copy \\\n       \"/tmp/{{ $('Get Folder name').item.json.folder_name }}/{{ $('Get Folder name').item.json.folder_name }}_%03d.{{ $('Get Folder name').item.json.fileExtension }}\""
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1552, -1840],
+      "id": "14ed1c10-8676-46d3-99e9-63305f7237c1",
+      "name": "Segment Audio by Time"
+    },
+    {
+      "parameters": {
+        "command": "=mkdir -p \"/tmp/{{ $json.folder_name }}\""
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [624, -1952],
+      "id": "4e64acfa-319c-48ae-b261-feb8c40bb2f1",
+      "name": "Create folder"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "382697db-877f-47ef-a124-39e314bcd88e",
+              "name": "folder_name",
+              "value": "={{ $json.fileName.split('.')[0] }}",
+              "type": "string"
+            },
+            {
+              "id": "10def6d8-a621-4228-a206-5d7bad188d95",
+              "name": "fileSizeMB",
+              "value": "={{ \n  $json.fileSize.toLowerCase().includes('mb')? \n  $json.fileSize.split(' ')[0] :  \n\n  $json.fileSize.toLowerCase().includes('kb')? \n    $json.fileSize.split(' ')[0] / 1000 :  \n\n    $json.fileSize.toLowerCase().includes('gb')? \n      $json.fileSize.split(' ')[0] * 1000 :  \n      0\n}}",
+              "type": "number"
+            },
+            {
+              "id": "00cd9cd3-bb27-454c-ae72-ae2b9ca446df",
+              "name": "path",
+              "value": "={{ $('Start').item.json.path }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [144, -1824],
+      "id": "bd88d415-2e46-4ca4-ad62-005c9b73e355",
+      "name": "Get Folder name"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "45a7cdf6-5b33-4474-9aca-755cc2077c99",
+              "name": "duration",
+              "value": "={{ $json.stdout }}",
+              "type": "string"
+            },
+            {
+              "id": "12ac881b-a1ac-43d8-a506-795643ef9ca7",
+              "name": "file_size",
+              "value": "={{ $('Get Folder name').item.json.fileSizeMB }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1040, -1840],
+      "id": "6b3d61c7-f1c9-4bf8-bd32-41c4b56cab83",
+      "name": "Get size in MB"
+    },
+    {
+      "parameters": {
+        "command": "=ls \"/tmp/{{ $('Get Folder name').item.json.folder_name }}\""
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [816, -1632],
+      "id": "e1df82fd-f498-4ef4-b4c6-f70b8d7951ea",
+      "name": "List files"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "57eb6f53-8497-41f4-ad7f-4efe14572171",
+              "leftValue": "={{ $json.stdout.split('\\n').length }}",
+              "rightValue": "={{ $('Calculate secondsPerSegment').item.json.totalSegments }}",
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1040, -1632],
+      "id": "b703e88a-e9f9-4fae-9310-cf955eb9542c",
+      "name": "If has complete segments"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1248, -1488],
+      "id": "7ca61751-3ee3-4fe9-9148-aa5a98a18854",
+      "name": "Wait 5s",
+      "webhookId": "9f71e55b-7ace-4e24-8b04-fd95a4303632"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b9f094a0-9885-4408-8d0c-40c50aa435d5",
+              "name": "files",
+              "value": "={{ $json.stdout.split('\\n') }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1248, -1648],
+      "id": "31b36fa7-d470-4aea-a5e4-275d985ec127",
+      "name": "getFiles"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "files",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [1552, -1648],
+      "id": "f0429c9c-582d-431d-8aa8-532d73ae64b2",
+      "name": "Split Out2"
+    },
+    {
+      "parameters": {
+        "fileSelector": "=/tmp/{{ $('Get Folder name').item.json.folder_name }}/{{ $json.files }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [1552, -1424],
+      "id": "a415eb13-b128-4e84-928a-6b68de306149",
+      "name": "Read segment"
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "transcription"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [656, -1232],
+      "id": "8e66c03d-b713-4059-b82b-2b04afbbe58b",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "09aff216-057f-42fa-9743-5f3ecb6743c4",
+              "name": "transcription",
+              "value": "={{ $json.content.parts.map(item => item.text).join('. ') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [352, -1232],
+      "id": "a2306b7f-be89-4573-a76b-670d822e40ab",
+      "name": "Getting transcription"
+    },
+    {
+      "parameters": {
+        "command": "=rm -rf \"/tmp/{{ $('Get Folder name').item.json.folder_name }}\""
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [352, -1424],
+      "id": "54ab6a47-c5c9-4a44-9808-e52f86e235e4",
+      "name": "Clean temp files"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b9bff389-5dfd-4291-858b-811fa80f52c2",
+              "leftValue": "={{ Number($('Read File from Disk').item.json.fileSize.split(' ')[0]) }}",
+              "rightValue": 20,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [-80, -1232],
+      "id": "b9614a0e-634e-4d7d-b8fe-13ef7dc766fc",
+      "name": "If size > 20MB"
+    },
+    {
+      "parameters": {
+        "jsCode": "const MAX_SIZE = 20 // MB\n\nconst durations = $input.all()[0].json.duration.split('\\n')\nconst hasManyDuration = durations.length > 1\nconst time = hasManyDuration ? durations[1] : durations[0]\nconst size = $input.all()[0].json.file_size\n\nconst totalSeconds = time.split(':').reduce((acc, curr, index) => {\n  return acc + parseInt(curr) * Math.pow(60, 2 - index);\n}, 0);\n\nconst totalSegments = Math.ceil(size / MAX_SIZE);\n\nconst secondsPerSegment = Math.ceil(totalSeconds / totalSegments);\n\nreturn { secondsPerSegment, totalSegments }"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1248, -1840],
+      "id": "f3e00b4d-e4af-4752-889b-b8e927d8f3d1",
+      "name": "Calculate secondsPerSegment"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4df8fba3-aed2-4eee-a06b-e9c2b8a7bca0",
+              "name": "data",
+              "value": "={{ $json.transcription.join(' ') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [912, -1232],
+      "id": "53ec46ec-e3d0-495a-b0b1-da7ed3248ed2",
+      "name": "Join transcriptions"
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "path",
+              "type": "any"
+            }
+          ]
+        }
+      },
+      "id": "92d9347d-7966-4ee4-b366-d906a6861cde",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [-288, -1824]
+    },
+    {
+      "parameters": {
+        "fileSelector": "={{ $json.path }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [-80, -1824],
+      "id": "9b9e3c9e-0588-4d0a-83e0-8d81de89b35e",
+      "name": "Read File from Disk"
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "inputType": "binary",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [-288, -1232],
+      "id": "eb4a536e-59ae-4c19-8d2a-ab2aee07c402",
+      "name": "Transcribe a recording",
+      "retryOnFail": true,
+      "credentials": {
+        "googlePalmApi": {
+          "id": "y4XWN6CcBCH7Zh7L",
+          "name": "Google Gemini - Personal"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "Start": [
+      {
+        "json": {
+          "path": "/files/meetings/File.m4a"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "If size > 20mb": {
+      "main": [
+        [
+          {
+            "node": "Create folder",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Audio duration",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Transcribe a recording",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Audio duration": {
+      "main": [
+        [
+          {
+            "node": "Get size in MB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Segment Audio by Time": {
+      "main": [
+        [
+          {
+            "node": "List files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create folder": {
+      "main": [[]]
+    },
+    "Get Folder name": {
+      "main": [
+        [
+          {
+            "node": "If size > 20mb",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get size in MB": {
+      "main": [
+        [
+          {
+            "node": "Calculate secondsPerSegment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List files": {
+      "main": [
+        [
+          {
+            "node": "If has complete segments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If has complete segments": {
+      "main": [
+        [
+          {
+            "node": "getFiles",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait 5s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 5s": {
+      "main": [
+        [
+          {
+            "node": "List files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "getFiles": {
+      "main": [
+        [
+          {
+            "node": "Split Out2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out2": {
+      "main": [
+        [
+          {
+            "node": "Read segment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read segment": {
+      "main": [
+        [
+          {
+            "node": "Transcribe a recording",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Getting transcription": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Join transcriptions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean temp files": {
+      "main": [[]]
+    },
+    "If size > 20MB": {
+      "main": [
+        [
+          {
+            "node": "Clean temp files",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Getting transcription",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Getting transcription",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate secondsPerSegment": {
+      "main": [
+        [
+          {
+            "node": "Segment Audio by Time",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Read File from Disk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Join transcriptions": {
+      "main": [[]]
+    },
+    "Read File from Disk": {
+      "main": [
+        [
+          {
+            "node": "Get Folder name",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe a recording": {
+      "main": [
+        [
+          {
+            "node": "If size > 20MB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "9c90d1eb-63e4-4875-92d5-eb54015ddce0",
+  "meta": {
+    "instanceId": "962974c30cbadb70c9ee57a8f9a1e2be52532c807f1dc3bdd7e369cf3ddcd257"
+  },
+  "id": "z0hsCcLx0IFeC0rV",
+  "tags": []
+}
