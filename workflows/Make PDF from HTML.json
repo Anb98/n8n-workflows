@@ -1,0 +1,151 @@
+{
+  "name": "Make PDF from HTML",
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gotenberg.abdiel.dev/forms/chromium/convert/html",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "files",
+              "inputDataFieldName": "=data"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        352,
+        -704
+      ],
+      "id": "7ab40e2b-ffcd-47ac-9fcf-80a0d31ac14b",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "=html",
+        "options": {
+          "fileName": "index.html",
+          "mimeType": "text/html"
+        }
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        112,
+        -704
+      ],
+      "id": "44266e2b-374e-41d4-9e5f-32e9587dd762",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "40148382-5616-467a-8020-277a5822e51f",
+              "name": "html",
+              "value": "={{ $json.text.base64Encode() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -80,
+        -704
+      ],
+      "id": "ab46d353-140f-47e0-ad60-5bae039a63bd",
+      "name": "To Base64"
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "text",
+              "type": "any"
+            }
+          ]
+        }
+      },
+      "id": "5947b0bb-d6e9-442c-adcc-290587e6e405",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        -272,
+        -704
+      ]
+    }
+  ],
+  "pinData": {
+    "Start": [
+      {
+        "json": {
+          "text": "<!DOCTYPE html><html><head>    <title>My First Webpage</title></head><body>    <h1>Welcome to My Website</h1>    <p>This is my first paragraph of content.</p>    </body></html>"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "To Base64": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "To Base64",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "f15c8b8e-e6fe-4d70-bf11-edb54b6c7fe7",
+  "meta": {
+    "instanceId": "962974c30cbadb70c9ee57a8f9a1e2be52532c807f1dc3bdd7e369cf3ddcd257"
+  },
+  "id": "fyjHWFfECAWWqm5O",
+  "tags": []
+}
