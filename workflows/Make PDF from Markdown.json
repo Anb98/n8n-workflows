@@ -1,0 +1,192 @@
+{
+  "name": "Make PDF from Markdown",
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gotenberg.abdiel.dev/forms/chromium/convert/html",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "files",
+              "inputDataFieldName": "=data"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        800,
+        -704
+      ],
+      "id": "8e850820-ec4e-4825-b41f-45dfafda9cc9",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "html": "<!doctype html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"utf-8\" />\n    <link\n      href=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css\"\n      rel=\"stylesheet\"\n    />\n    <title>PDF</title>\n  </head>\n  <body>\n    {{ $json.data }}\n  </body>\n</html>"
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        144,
+        -704
+      ],
+      "id": "7ddaac09-49aa-4bb4-8dfd-31f58d69a22e",
+      "name": "HTML"
+    },
+    {
+      "parameters": {
+        "mode": "markdownToHtml",
+        "markdown": "={{ $json.text }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.markdown",
+      "typeVersion": 1,
+      "position": [
+        -64,
+        -704
+      ],
+      "id": "6f070d68-06fe-47bf-bc5c-07b19c87308c",
+      "name": "Markdown"
+    },
+    {
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "=html",
+        "options": {
+          "fileName": "index.html",
+          "mimeType": "text/html"
+        }
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        560,
+        -704
+      ],
+      "id": "c6e62e0a-897c-4e1a-a412-202d2d663e17",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "40148382-5616-467a-8020-277a5822e51f",
+              "name": "html",
+              "value": "={{ $json.html.base64Encode() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        368,
+        -704
+      ],
+      "id": "54b71705-a849-4a07-9630-a9654663854d",
+      "name": "To Base64"
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "text",
+              "type": "any"
+            }
+          ]
+        }
+      },
+      "id": "7bb032fd-099e-4c0e-9b32-25408583e90c",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        -272,
+        -704
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "HTML": {
+      "main": [
+        [
+          {
+            "node": "To Base64",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Markdown": {
+      "main": [
+        [
+          {
+            "node": "HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "To Base64": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Markdown",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "8c2cdde8-0904-4ffc-bbce-0df61223cc04",
+  "meta": {
+    "instanceId": "962974c30cbadb70c9ee57a8f9a1e2be52532c807f1dc3bdd7e369cf3ddcd257"
+  },
+  "id": "PZYWCnyJZdRl4F8F",
+  "tags": []
+}
